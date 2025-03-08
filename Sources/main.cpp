@@ -179,10 +179,10 @@ arrow::Status ExecutePlanToDataset(ac::Declaration previousNode, std::string dat
     
     ac::Declaration filter_node{
         "write", {std::move(previousNode)}, write_node_options};
-
+    
     ARROW_RETURN_NOT_OK(ac::DeclarationToStatus(filter_node, true));
     
-     std::cout << "Dataset written to " << set_path << std::endl;
+    std::cout << "Dataset written to " << set_path << std::endl;
     
     return arrow::Status::OK();
 }
@@ -256,7 +256,7 @@ arrow::Status RunMain() {
      * Filter values with count larger than 10
      */
     std::cout << "Building exclude group list..." << std::endl;
-
+    
     std::shared_ptr<arrow::RecordBatchReader> reader2;
     ARROW_ASSIGN_OR_RAISE(reader2, CreateRecordBatchReader());
     
@@ -283,7 +283,7 @@ arrow::Status RunMain() {
      * Filter original list
      */
     std::cout << "Filtering orginal list..." << std::endl;
-
+    
     std::shared_ptr<arrow::RecordBatchReader> reader3;
     ARROW_ASSIGN_OR_RAISE(reader3, CreateRecordBatchReader());
     
