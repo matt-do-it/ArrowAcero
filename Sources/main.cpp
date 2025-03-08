@@ -11,6 +11,7 @@
 #include <arrow/compute/api.h>
 #include <arrow/acero/api.h>
 #include <arrow/dataset/api.h>
+#include <arrow/dataset/plan.h>
 
 namespace ac = arrow::acero;
 namespace cp = arrow::compute;
@@ -31,7 +32,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> CreateSampleBatch() {
     std::mt19937 g;
     std::uniform_int_distribution<unsigned> distr;
     
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100000; i++) {
         ARROW_RETURN_NOT_OK(stringBuilder.Append(groups[rand() % std::size(groups)]));
         ARROW_RETURN_NOT_OK(intBuilder.Append(i));
     }
@@ -68,7 +69,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatchReader>> CreateRecordBatchReader
     std::shared_ptr<arrow::RecordBatchReader> reader;
     std::vector<std::shared_ptr<arrow::RecordBatch>> batches;
     
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 1000; i++) {
         std::shared_ptr<arrow::RecordBatch> rbatch;
         ARROW_ASSIGN_OR_RAISE(rbatch, CreateSampleBatch());
         batches.push_back(rbatch);
@@ -176,17 +177,12 @@ arrow::Status ExecutePlanToDataset(ac::Declaration previousNode, std::string dat
     write_options.existing_data_behavior = arrow::dataset::ExistingDataBehavior::kOverwriteOrIgnore;
     arrow::dataset::WriteNodeOptions write_node_options{write_options};
     
-    std::shared_ptr<arrow::RecordBatchReader> reader;
-    ARROW_ASSIGN_OR_RAISE(reader, ac::DeclarationToReader(previousNode));
+    ac::Declaration filter_node{
+        "write", {std::move(previousNode)}, write_node_options};
+
+    ARROW_RETURN_NOT_OK(ac::DeclarationToStatus(filter_node, true));
     
-    auto write_scanner_builder =
-    arrow::dataset::ScannerBuilder::FromRecordBatchReader(reader);
-    ARROW_ASSIGN_OR_RAISE(auto write_scanner, write_scanner_builder->Finish());
-    
-    ARROW_RETURN_NOT_OK(
-                        arrow::dataset::FileSystemDataset::Write(write_options, write_scanner));
-    
-    std::cout << "Dataset written to " << set_path << std::endl;
+     std::cout << "Dataset written to " << set_path << std::endl;
     
     return arrow::Status::OK();
 }
@@ -327,6 +323,9 @@ arrow::Status RunMain() {
 }
 
 int main() {
+    std::cout << "Thread CPU Pool capacity: " << arrow::GetCpuThreadPoolCapacity() << std::endl;
+    std::cout << "Thread I/O Pool capacity: " << arrow::io::GetIOThreadPoolCapacity() << std::endl;
+    arrow::dataset::internal::Initialize();
     arrow::Status st = RunMain();
     if (!st.ok()) {
         std::cerr << st << std::endl;
