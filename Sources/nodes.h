@@ -21,3 +21,8 @@ ac::Declaration CalcQuantileNode(ac::Declaration previousNode, double quantile);
 ac::Declaration GetValuesWithCountLargerThanNode(ac::Declaration previousNode, double value);
 ac::Declaration FilterByValueSet(ac::Declaration previousNode, arrow::Datum valueSet);
 ac::Declaration RecordBatchSourceNode(std::shared_ptr<arrow::RecordBatchReader> reader);
+ac::Declaration FilterByRegexNode(ac::Declaration previousNode, std::string pattern);
+ac::Declaration ReplaceByRegexNode(ac::Declaration previousNode,
+                                   std::vector<std::string> keepColumns,
+                                   std::string pattern, std::string replacement, int max_replacements);
+ac::Declaration ParseDateNode(ac::Declaration previousNode);

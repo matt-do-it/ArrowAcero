@@ -33,7 +33,6 @@ arrow::Result<ac::Declaration> OpenDatasetNode(std::string dataset_path) {
       std::cout << "Found fragment: " << (*fragment)->ToString() << std::endl;
     }
    
-    
     auto scan_options = std::make_shared<arrow::dataset::ScanOptions>();
     scan_options->projection = cp::project({}, {});  // create empty projection
 
@@ -96,6 +95,56 @@ ac::Declaration FilterByValueSet(ac::Declaration previousNode, arrow::Datum valu
     
     return filter_node;
 }
+
+ac::Declaration FilterByRegexNode(ac::Declaration previousNode, std::string pattern) {
+    auto matchOptions = std::make_shared<cp::MatchSubstringOptions>(pattern);
+
+    cp::Expression filter_expr = cp::call("match_substring_regex", std::vector<cp::Expression>{
+        cp::field_ref("Group")
+    }, matchOptions);
+    
+    
+    ac::Declaration filter_node{
+        "filter", {std::move(previousNode)}, ac::FilterNodeOptions(std::move(filter_expr))};
+    
+    return filter_node;
+}
+
+ac::Declaration ReplaceByRegexNode(ac::Declaration previousNode,
+                                   std::vector<std::string> keepColumns,
+                                   std::string pattern, std::string replacement, int max_replacements) {
+    auto matchOptions = std::make_shared<cp::ReplaceSubstringOptions>(pattern, replacement, max_replacements);
+    
+    cp::Expression filter_expr = cp::call("replace_substring_regex", std::vector<cp::Expression>{
+        cp::field_ref("Group")
+    }, matchOptions);
+    
+    std::vector<cp::Expression> keepColumnsRef;
+    for (const auto& value : keepColumns) {
+        keepColumnsRef.push_back(cp::field_ref(value));
+    }
+    keepColumnsRef.push_back(filter_expr);
+    
+    
+    ac::Declaration filter_node{
+          "project", {std::move(previousNode)}, ac::ProjectNodeOptions(keepColumnsRef)};
+
+    return filter_node;
+}
+
+ac::Declaration ParseDateNode(ac::Declaration previousNode) {
+    auto matchOptions = std::make_shared<cp::StrptimeOptions>("%Y-%m-%dT%H:%M:%S %Z",
+                                                              arrow::TimeUnit::MILLI);
+    cp::Expression filter_expr = cp::call("strptime", std::vector<cp::Expression>{
+        cp::field_ref("Date")
+    }, matchOptions);
+    
+    ac::Declaration filter_node{
+          "project", {std::move(previousNode)}, ac::ProjectNodeOptions({std::move(filter_expr)})};
+
+    return filter_node;
+}
+
 
 ac::Declaration RecordBatchSourceNode(std::shared_ptr<arrow::RecordBatchReader> reader) {
     auto source_node_options = ac::RecordBatchReaderSourceNodeOptions{reader};

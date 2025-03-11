@@ -31,10 +31,11 @@ arrow::Status RunMain() {
     
     std::cout << "Calculating quantile..." << std::endl;
     
- //   std::shared_ptr<arrow::RecordBatchReader> reader;
- //   ARROW_ASSIGN_OR_RAISE(reader, CreateRecordBatchReader());
+    std::shared_ptr<arrow::RecordBatchReader> reader;
+    ARROW_ASSIGN_OR_RAISE(reader, CreateRecordBatchReader());
+    ac::Declaration sourceNode = RecordBatchSourceNode(reader);
     
-    ARROW_ASSIGN_OR_RAISE(ac::Declaration sourceNode, OpenDatasetNode("file:///Users/herold/Desktop/test/parquet"));
+ // ARROW_ASSIGN_OR_RAISE(ac::Declaration sourceNode, OpenDatasetNode("file:///Users/herold/Desktop/test/parquet"));
     ac::Declaration calcQuantileNode = CalcQuantileNode(sourceNode, 0.995);
     
     std::shared_ptr<arrow::Table> table;
@@ -83,14 +84,14 @@ arrow::Status RunMain() {
     /*
      * Filter original list
      */
-    std::cout << "Filtering orginal list..." << std::endl;
+    std::cout << "Filtering orginal list by value set..." << std::endl;
     
     std::shared_ptr<arrow::RecordBatchReader> reader3;
     ARROW_ASSIGN_OR_RAISE(reader3, CreateRecordBatchReader());
     
     ac::Declaration sourceNode3 = RecordBatchSourceNode(reader3);
     ac::Declaration valueSetFilter = FilterByValueSet(sourceNode3, array);
-    
+
     std::shared_ptr<arrow::Table> table3;
     ARROW_ASSIGN_OR_RAISE(table3, ExecutePlanToTable(valueSetFilter));
     
@@ -102,17 +103,41 @@ arrow::Status RunMain() {
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "-- Execution duration: " << duration.count() << "ms\n";
     /* Measure timing */
-    
+
     /*
-     * Filter and write dataset
+     * Filter by regex
      */
+    std::cout << "Filtering orginal list by regex..." << std::endl;
+    
     std::shared_ptr<arrow::RecordBatchReader> reader4;
     ARROW_ASSIGN_OR_RAISE(reader4, CreateRecordBatchReader());
     
     ac::Declaration sourceNode4 = RecordBatchSourceNode(reader4);
-    ac::Declaration valueSetFilter2 = FilterByValueSet(sourceNode4, array);
+    ac::Declaration valueSetFilter2 = ReplaceByRegexNode(sourceNode4, { "Group", "Date", "Values" }, "group_(3|4)", "Group_\\1", -1);
+    ac::Declaration filter3 = ParseDateNode(valueSetFilter2);
+
+    std::shared_ptr<arrow::Table> table4;
+    ARROW_ASSIGN_OR_RAISE(table4, ExecutePlanToTable(filter3));
     
-    ARROW_RETURN_NOT_OK(ExecutePlanToDataset(valueSetFilter2, "file:///Users/herold/Desktop/test/parquet"));
+    std::cout << "Final results" << std::endl;
+    std::cout << table4->ToString() << std::endl;
+    
+    /* Measure timing */
+    endTime = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+    std::cout << "-- Execution duration: " << duration.count() << "ms\n";
+    /* Measure timing */
+ 
+    /*
+     * Filter and write dataset
+     */
+    std::shared_ptr<arrow::RecordBatchReader> reader5;
+    ARROW_ASSIGN_OR_RAISE(reader5, CreateRecordBatchReader());
+    
+    ac::Declaration sourceNode5 = RecordBatchSourceNode(reader5);
+    ac::Declaration valueSetFilter3 = FilterByValueSet(sourceNode5, array);
+    
+    ARROW_RETURN_NOT_OK(ExecutePlanToDataset(valueSetFilter3, "file:///Users/herold/Desktop/test/parquet"));
     
     /* Measure timing */
     endTime = std::chrono::high_resolution_clock::now();
