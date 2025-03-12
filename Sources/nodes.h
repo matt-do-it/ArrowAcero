@@ -17,12 +17,31 @@ namespace ac = arrow::acero;
 namespace cp = arrow::compute;
 
 arrow::Result<ac::Declaration> OpenDatasetNode(std::string dataset_path);
+
 ac::Declaration CalcQuantileNode(ac::Declaration previousNode, double quantile);
-ac::Declaration GetValuesWithCountLargerThanNode(ac::Declaration previousNode, double value);
-ac::Declaration FilterByValueSet(ac::Declaration previousNode, arrow::Datum valueSet);
+
+ac::Declaration AggregateValuesGreaterEqualThanNode(ac::Declaration previousNode,
+                                                 std::string columnName,
+                                                 double value);
+
+ac::Declaration FilterNotInValueSet(ac::Declaration previousNode,
+                                    std::string columnName,
+                                    arrow::Datum valueSet);
+
+ac::Declaration FilterRegexNode(ac::Declaration previousNode,
+                                std::string columnName,
+                                  std::string pattern);
+
 ac::Declaration RecordBatchSourceNode(std::shared_ptr<arrow::RecordBatchReader> reader);
-ac::Declaration FilterByRegexNode(ac::Declaration previousNode, std::string pattern);
-ac::Declaration ReplaceByRegexNode(ac::Declaration previousNode,
-                                   std::vector<std::string> keepColumns,
-                                   std::string pattern, std::string replacement, int max_replacements);
-ac::Declaration ParseDateNode(ac::Declaration previousNode);
+
+ac::Declaration ProjectNode(std::string projectName,
+                            ac::Declaration previousNode,
+                            std::vector<std::string> keepColumns,
+                            std::string columnName,
+                            std::string projectedColumnName,
+                            std::shared_ptr<cp::FunctionOptions> options);
+
+ac::Declaration FilterNode(std::string filterName,
+                           ac::Declaration previousNode,
+                           std::string columnName,
+                           std::shared_ptr<cp::FunctionOptions> options);
