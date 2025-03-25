@@ -19,3 +19,4 @@ namespace cp = arrow::compute;
 arrow::Result<std::shared_ptr<arrow::RecordBatch>> CreateSampleBatch();
 arrow::Result<std::shared_ptr<arrow::RecordBatchReader>> CreateRecordBatchReader();
 arrow::Status WriteBatches(std::shared_ptr<arrow::RecordBatchReader> reader);
+std::shared_ptr<arrow::Schema> CreateSampleSchema();
