@@ -14,6 +14,8 @@
 #include <arrow/dataset/api.h>
 #include <arrow/dataset/plan.h>
 
+#include <arrow/visit_data_inline.h>
+
 #include <boost/url.hpp>
 
 namespace ac = arrow::acero;
@@ -28,10 +30,6 @@ class URLParseOptionsType : public cp::FunctionOptionsType {
         return true;
     }
     std::unique_ptr<cp::FunctionOptions> Copy(const cp::FunctionOptions&) const override;
-
-    // optional: support for serialization
-    // Result<std::shared_ptr<Buffer>> Serialize(const FunctionOptions&) const override;
-    // Result<std::unique_ptr<FunctionOptions>> Deserialize(const Buffer&) const override;
 };
 
 cp::FunctionOptionsType* GetURLParseOptionsType();
@@ -46,11 +44,10 @@ class URLParseOptions : public cp::FunctionOptions {
 public:
     URLParseOptionsExtract extract = HOST;
     
-    URLParseOptions(URLParseOptionsExtract _extract = HOST) : cp::FunctionOptions(GetURLParseOptionsType()) {
+    URLParseOptions(URLParseOptionsExtract _extract = HOST) :
+        cp::FunctionOptions(GetURLParseOptionsType()) {
         extract = _extract;
     }
 };
-
-
 
 void RegisterCustomFunctions();

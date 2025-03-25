@@ -18,11 +18,12 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> CreateSampleBatch() {
     std::mt19937 g;
     std::uniform_int_distribution<unsigned> distr;
     
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 1000000; i++) {
         ARROW_RETURN_NOT_OK(stringBuilder.Append(groups[rand() % std::size(groups)]));
         ARROW_RETURN_NOT_OK(intBuilder.Append(i));
         ARROW_RETURN_NOT_OK(dateBuilder.Append("2025-01-01T00:10:00 CET"));
-        ARROW_RETURN_NOT_OK(urlBuilder.Append("http://www.test.de"));
+        
+        ARROW_RETURN_NOT_OK(urlBuilder.Append("http://www.test.d%2te///test1/teüüüst2?adf=quer&utm_campaign=adf&utm_source=test"));
     }
     
     // We only have a Builder though, not an Array -- the following code pushes out the

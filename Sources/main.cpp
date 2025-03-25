@@ -15,13 +15,14 @@
 
 #include <boost/url.hpp>
 
-namespace ac = arrow::acero;
-namespace cp = arrow::compute;
-
 #import "nodes.h"
 #import "sinks.h"
 #import "sample.h"
 #import "udf.h"
+
+namespace ac = arrow::acero;
+namespace cp = arrow::compute;
+
 
 arrow::Status RunMain() {
     RegisterCustomFunctions();
@@ -132,15 +133,53 @@ arrow::Status RunMain() {
                                                 "dateParsed",
                                                 std::make_shared<cp::StrptimeOptions>("%Y-%m-%dT%H:%M:%S %Z", arrow::TimeUnit::MILLI));
     
-    ac::Declaration projectNode43 = ProjectNode("url_extract",
+    ac::Declaration projectNode43 = ProjectNode("replace_substring_regex",
                                                 projectNode42,
-                                                {"group", "date", "dateParsed", "value"},
+                                                { "group", "date", "dateParsed", "value" },
+                                                "url",
+                                                "url",
+                                                std::make_shared<cp::ReplaceSubstringOptions>("[^ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\\-._~:/?#\\[\\]@!$&'()*+,;=]|%[^a-fA-F0-9][^a-fA-F0-9]|%.[^a-fA-F0-9]|%[^a-fA-F0-9].", ""));
+
+    ac::Declaration projectNode44 = ProjectNode("url_extract",
+                                                projectNode43,
+                                                {"group", "date", "dateParsed", "value", "url"},
                                                 "url",
                                                 "host",
                                                 std::make_shared<URLParseOptions>());
     
+    ac::Declaration projectNode45 = ProjectNode("url_extract_dict",
+                                                projectNode44,
+                                                {"group", "date", "dateParsed", "value", "url"},
+                                                "url",
+                                                "parsed_url",
+                                                std::make_shared<URLParseOptions>());
+
+    std::vector<std::string> fields = { "scheme", "host", "path", "query", "fragment", "combinedPagePath",
+    "pagePath1", "pagePath2", "pagePath3", "utm_campaign", "utm_source", "utm_medium", "utm_term"};
+  
+    
+    std::vector<ac::Declaration> projectNodes;
+    projectNodes.reserve(fields.size());
+    
+    ac::Declaration* lastNode = &projectNode45;
+    
+    for (auto field = fields.begin(); field != fields.end(); field++) {
+        std::vector<std::string> keep_fields = {"group", "date", "dateParsed", "value", "url", "parsed_url" };
+        keep_fields.insert( keep_fields.end(), fields.begin(), field );
+        
+        projectNodes.push_back(ProjectNode("struct_field",
+                                           *lastNode,
+                                           keep_fields,
+                                           "parsed_url",
+                                           *field,
+                                           std::make_shared<cp::StructFieldOptions>(*field)));
+        lastNode = &projectNodes.back();
+    }
+   
+
+    
     std::shared_ptr<arrow::Table> table4;
-    ARROW_ASSIGN_OR_RAISE(table4, ExecutePlanToTable(projectNode43));
+    ARROW_ASSIGN_OR_RAISE(table4, ExecutePlanToTable(*lastNode));
     
     std::cout << "Final results" << std::endl;
     std::cout << table4->ToString() << std::endl;
